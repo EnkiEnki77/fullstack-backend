@@ -5,7 +5,9 @@
   "main": "express.js",
   "scripts": {
     "start": "nodemon express.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:ui": "rm -rf build && cd ../part-1 && npm run build && cp -r build ../fullstack-backend",
+    "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && git push"
   },
   "author": "",
   "license": "ISC",

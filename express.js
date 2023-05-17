@@ -23,6 +23,8 @@ let notes = [
     }
   ]
 
+  app.use(express.static('build'));
+
   //When sending html as a response you have to actually wrap the text in a html tag
   //We create a route handler based on the method type of the incoming request. If the HTTP method of the request is 
   //get than this route handler shall execute, but if it were a post request we'd have to use app.post for example. 

@@ -110,6 +110,10 @@ app.post('/notes', (req, res) => {
     res.json(note)
 })
 
+app.put('/notes/:id', (req, res) => {
+  res.send(req.body)
+})
+
 const PORT = process.env.PORT || 3001
 
 app.listen(PORT, () => console.log(`server listening on port: ${PORT}`))

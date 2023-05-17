@@ -1,5 +1,9 @@
 const express = require('express')
+const cors = require('cors')
 const app = express()
+
+app.use(express.json())
+app.use(cors())
 
 let notes = [
     {
@@ -43,9 +47,70 @@ app.get('/notes/:id', (req, res) => {
     const id = req.params.id
     const note = notes.find(note => note.id == id)
 
+    //When utilizing path params you should always create control flow to determine the response. Otherwise you always 
+    //get back the default 200 status code, even if no data was sent back. 
+    if(note != null){
+        res.json(note)
+    }else{
+        //You should use the end method to send the response without any data.
+        res.status(404).end()
+    }
+})
+
+app.delete('/notes/:id', (req, res) => {
+    const id = req.params.id
+    notes = notes.filter(note => note.id != id)
+
+    res.status(204).end()
+})
+
+//TO add a new note to the 'server' we need to use a post request and send all the data through the request body in JSON
+//format.
+//We need to use the express module called json-parser
+
+//If your route handler logic gets long, extract logic into functions
+function generateId(){
+    const maxId = notes.length > 0 
+    ? Math.max(...notes.map(note => note.id)) :
+    0
+
+    return maxId + 1
+}
+
+app.post('/notes', (req, res) => {
+    //we have access to the data on the body property of the request object. Without executing the json-parser midlleware
+    //the body property would be undefined though.
+    //The json-parser takes the JSON data of a request transforms it into a normal js object, and attaches to the body
+    //property of the request object before the route handler is called. 
+
+    const body = req.body
+
+    //To ensure the req body data sent by the client has a strict data shape we can use control flow, and define the 
+    //data added to the db as a predetermined object with dynamic property values. Instead of just passing the whole 
+    //req.body into the db.
+    //We can also make a property optional in the body by just giving it a default value with || instead of using control
+    //flow
+    if(!body.content){
+      //If youd like to end the handler because of missing data and send back an error you need to use return otherwise
+      //the malformed note will still be added to the db.
+      return res.status(400).json({
+        error: 'content is missing'
+      })
+    }
+
+    const note = {
+      content: body.content,
+      important: body.important || false,
+      id: generateId()
+    }
+
+    notes.push(note)
+    
+    console.log(notes)
     res.json(note)
 })
 
-app.listen(3001)
+const PORT = process.env.PORT || 3001
 
-console.log(`server listening on port: ${3001}`)
+app.listen(PORT, () => console.log(`server listening on port: ${PORT}`))
+

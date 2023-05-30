@@ -1,29 +1,12 @@
 const express = require('express')
 const cors = require('cors')
 const app = express()
+const Note = require('./models/note')
 
 app.use(express.json())
 app.use(cors())
 
-let notes = [
-    {
-      id: 1,
-      content: "HTML is easy",
-      important: true
-    },
-    {
-      id: 2,
-      content: "Browser can execute only JavaScript",
-      important: false
-    },
-    {
-      id: 3,
-      content: "GET and POST are the most important methods of HTTP protocol",
-      important: true
-    }
-  ]
-
-  app.use(express.static('build'));
+app.use(express.static('build'));
 
   //When sending html as a response you have to actually wrap the text in a html tag
   //We create a route handler based on the method type of the incoming request. If the HTTP method of the request is 
@@ -33,13 +16,21 @@ app.get('/', (req, res) => {
     //send is one method used to respond to the HTTP request
     //express automatically sets the content-type header based on the argument type passed.
     //the status code defaults to 200. 
-    res.send(notes)
+    Note.find({})
+    .then(notes => {
+      console.log(notes)
+      res.json(notes)
+    })
 })
 
 //When sending json in express you dont need to use JSON.stringify, just do res.json
 app.get('/notes', (req, res) => {
     //When using the json method of the response object express automatically sets the content-type to application/json
-    res.json(notes)
+    Note.find({})
+    .then(notes => {
+      console.log(notes)
+      res.json(notes)
+    })
 })
 
 //Gets one note based on the id passed to the url param. Url params can be set in routes with the : 
@@ -47,16 +38,18 @@ app.get('/notes/:id', (req, res) => {
     //To access the url param from the request reference the params property, which is an object containing all the url
     //params.
     const id = req.params.id
-    const note = notes.find(note => note.id == id)
+    Note.find({id: id})
+    .then(note => {
+      if(note != null){
+        res.json(note)
+      }else{
+          //You should use the end method to send the response without any data.
+          res.status(404).end()
+      }
+    })
 
     //When utilizing path params you should always create control flow to determine the response. Otherwise you always 
     //get back the default 200 status code, even if no data was sent back. 
-    if(note != null){
-        res.json(note)
-    }else{
-        //You should use the end method to send the response without any data.
-        res.status(404).end()
-    }
 })
 
 app.delete('/notes/:id', (req, res) => {
@@ -100,13 +93,18 @@ app.post('/notes', (req, res) => {
       })
     }
 
-    const note = {
+    const note = new Note({
+      date: new Date().toString(),
       content: body.content,
       important: body.important || false,
-      id: generateId()
-    }
+    })
 
-    notes.push(note)
+    note
+    .save()
+    .then(result => {
+      console.log(`added new note`)
+      // mongoose.connection.close()
+    })
     
     console.log(notes)
     res.json(note)

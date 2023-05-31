@@ -1,32 +1,33 @@
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
 
-mongoose.set('strictQuery', false)
+mongoose.set('strictQuery', false);
 
-const url = process.env.MONGODB_URI
+// eslint-disable-next-line no-undef
+const url = process.env.MONGODB_URI;
 
-console.log(typeof url)
+console.log(typeof url);
 
 mongoose.connect(url)
-.then(res => console.log('Connected to mongo'))
-.catch(err => {
-    console.log('error connecting to mongo', err.message)
-})
+    .then(() => console.log('Connected to mongo'))
+    .catch(err => {
+        console.log('error connecting to mongo', err.message);
+    });
 
 const noteSchema = new mongoose.Schema({
     content: {
         type: String,
         minLength: 5,
         required: true
-      },
+    },
     important: Boolean
-})
+});
 
 noteSchema.set('toJSON', {
     transform: (document, returnedObject) => {
-        returnedObject.id = returnedObject._id.toString()
-        delete returnedObject._id
-        delete returnedObject.__v
+        returnedObject.id = returnedObject._id.toString();
+        delete returnedObject._id;
+        delete returnedObject.__v;
     }
-})
+});
 
-module.exports = mongoose.model('Note', noteSchema)
+module.exports = mongoose.model('Note', noteSchema);

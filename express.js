@@ -4,11 +4,11 @@ const app = express()
 require('dotenv').config()
 const Note = require('./models/note')
 const { errorHandler } = require('./modules/middleware')
-
+app.use(express.static('build'));
 app.use(express.json())
 app.use(cors())
 
-app.use(express.static('build'));
+
 
   //When sending html as a response you have to actually wrap the text in a html tag
   //We create a route handler based on the method type of the incoming request. If the HTTP method of the request is 
@@ -28,6 +28,8 @@ app.get('/', (req, res) => {
 //When sending json in express you dont need to use JSON.stringify, just do res.json
 app.get('/notes', (req, res) => {
     //When using the json method of the response object express automatically sets the content-type to application/json
+
+   
     Note.find({})
     .then(notes => {
       console.log(notes)
@@ -75,15 +77,8 @@ app.delete('/notes/:id', (req, res) => {
 //We need to use the express module called json-parser
 
 //If your route handler logic gets long, extract logic into functions
-function generateId(){
-    const maxId = notes.length > 0 
-    ? Math.max(...notes.map(note => note.id)) :
-    0
 
-    return maxId + 1
-}
-
-app.post('/notes', (req, res) => {
+app.post('/notes', (req, res, next) => {
     //we have access to the data on the body property of the request object. Without executing the json-parser midlleware
     //the body property would be undefined though.
     //The json-parser takes the JSON data of a request transforms it into a normal js object, and attaches to the body
@@ -96,6 +91,7 @@ app.post('/notes', (req, res) => {
     //req.body into the db.
     //We can also make a property optional in the body by just giving it a default value with || instead of using control
     //flow
+    //Its better to define validation for your data within the mongoose schema.
     if(body.content == null){
       //If youd like to end the handler because of missing data and send back an error you need to use return otherwise
       //the malformed note will still be added to the db.
@@ -103,6 +99,7 @@ app.post('/notes', (req, res) => {
         error: 'content is missing'
       })
     }
+
 
     //The note object is created by the Note model constructor function
     const note = new Note({
@@ -121,11 +118,23 @@ app.post('/notes', (req, res) => {
       res.json(result)
       // mongoose.connection.close()
     })
+    .catch(err => next(err))
     
 })
 
 app.put('/notes/:id', (req, res) => {
-  res.send(req.body)
+  const body = req.body
+  
+  const note = {
+    content: body.content,
+    important: body.important
+  }
+
+  Note.findByIdAndUpdate(req.params.id, note, {new: true, runValidators: true, context: 'query'})
+  .then(updatedNote => {
+    res.json(updatedNote)
+  })
+  .catch(err => next(err))
 })
 
 app.use(errorHandler)

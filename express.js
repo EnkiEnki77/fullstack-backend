@@ -1,7 +1,9 @@
 const express = require('express')
 const cors = require('cors')
 const app = express()
+require('dotenv').config()
 const Note = require('./models/note')
+const { errorHandler } = require('./modules/middleware')
 
 app.use(express.json())
 app.use(cors())
@@ -34,11 +36,13 @@ app.get('/notes', (req, res) => {
 })
 
 //Gets one note based on the id passed to the url param. Url params can be set in routes with the : 
-app.get('/notes/:id', (req, res) => {
+app.get('/notes/:id', (req, res, next) => {
     //To access the url param from the request reference the params property, which is an object containing all the url
     //params.
     const id = req.params.id
-    Note.find({id: id})
+
+    //You should use findById for finding individual resources.
+    Note.findById(id)
     .then(note => {
       if(note != null){
         res.json(note)
@@ -47,6 +51,7 @@ app.get('/notes/:id', (req, res) => {
           res.status(404).end()
       }
     })
+    .catch(err => next(err))
 
     //When utilizing path params you should always create control flow to determine the response. Otherwise you always 
     //get back the default 200 status code, even if no data was sent back. 
@@ -54,10 +59,16 @@ app.get('/notes/:id', (req, res) => {
 
 app.delete('/notes/:id', (req, res) => {
     const id = req.params.id
-    notes = notes.filter(note => note.id != id)
-
-    res.status(204).end()
+    
+    Note.findByIdAndDelete(id)
+    .then(result => {
+      res.status(204).end()
+    })
+    .catch(err => {
+      next(err)
+    })
 })
+
 
 //TO add a new note to the 'server' we need to use a post request and send all the data through the request body in JSON
 //format.
@@ -85,7 +96,7 @@ app.post('/notes', (req, res) => {
     //req.body into the db.
     //We can also make a property optional in the body by just giving it a default value with || instead of using control
     //flow
-    if(!body.content){
+    if(body.content == null){
       //If youd like to end the handler because of missing data and send back an error you need to use return otherwise
       //the malformed note will still be added to the db.
       return res.status(400).json({
@@ -93,26 +104,31 @@ app.post('/notes', (req, res) => {
       })
     }
 
+    //The note object is created by the Note model constructor function
     const note = new Note({
       date: new Date().toString(),
       content: body.content,
       important: body.important || false,
     })
 
+    //The new note object is saved to the db with save(). It returns a promise containing the note object if successful
+    //wich is then sent as the response. Sending the response shouold only happen if the operation is successful. The
+    //object sent back in the callback response is the formatted version using the toJSON method.
     note
     .save()
     .then(result => {
       console.log(`added new note`)
+      res.json(result)
       // mongoose.connection.close()
     })
     
-    console.log(notes)
-    res.json(note)
 })
 
 app.put('/notes/:id', (req, res) => {
   res.send(req.body)
 })
+
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 3001
 
